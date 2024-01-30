@@ -201,14 +201,10 @@ def make_all_graphs(model,
     else: sg = None
     if bool_kg: kg = Ktools.S_to_K(sg,model,device=device)
     else: kg = None
-    # -- sequentialized --
-    if bool_list_sg:
-        list_sg = Stools.cut(sg)
-    else: list_sg = None
-    if bool_list_kg:
-        cc,list_kg,list_ano_S = Atools.S_list_to_K_list_eco(
-            list_sg,model,device=device)
-    else: list_kg = None ; cc = None ; list_ano_S = None
+    
+    # 不做切割了
+    list_sg = None
+    list_kg = None ; cc = None ; list_ano_S = None
 
     # -- restore running_stats --
     for (m,(r_mean,r_var)) in saved_running_stats.items():
