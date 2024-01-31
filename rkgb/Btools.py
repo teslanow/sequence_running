@@ -133,7 +133,7 @@ def open_sub_module(sub_mod, sub_mod_str, sub_fct, inputs_vars, is_main=False):
     if not isinstance(memory, dict):  # quick fix, due to a type error in jit
         memory = memory.const_mapping
     a = (ast.parse(code)).body[0]
-
+    print(code)
     dict_vars = {}
     dict_vars["self"] = B_var(
         val=ast.Name(sub_mod_str), is_attr_of_self=True, path_from_self=[]

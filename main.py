@@ -137,8 +137,10 @@ class Rockmate(torch.nn.Module):
         for i, op in enumerate(op_list):
             if 'bwd' in op.name:
                 bwd_index_start = i
-        self.fwd_op_list = op_list[:bwd_index_start]
-        self.bwd_op_list = op_list[bwd_index_start:]
+                break
+        # 减一可能是计算loss
+        self.fwd_op_list = op_list[:bwd_index_start - 1]
+        self.bwd_op_list = op_list[bwd_index_start - 1:]
         self.storage = RK_Storage(self.device, self.original_mod, self.dict_constants)
 
     def get_compiled_fct(self):
@@ -165,6 +167,28 @@ class Rockmate(torch.nn.Module):
             for fct in fct_list:
                 fct()
 
+    # def forward(self, *args, record_mem=False, compiled=True, **kwargs):
+    #     if not self.training:
+    #         self.original_mod.eval()
+    #         return self.original_mod(*args, **kwargs)
+    #     model_inputs = make_inputs(self.original_mod, args, kwargs)
+    #     for k, v in model_inputs.items():
+    #         self.storage.add_val(k, v)
+    #     exec(self.init_code, self.storage.gd, self.storage.ld)
+    #     for kg in self.list_kg:
+    #         for kdn in kg.list_kdn:
+    #             self.storage.ld[kdn.main_target] = torch.empty(
+    #                 0, device=self.device, requires_grad=kdn.info.requires_grad
+    #             )
+    #     self.max_mem = []
+    #     self.allo_mem = []
+    #     if compiled:
+    #         for l in self.fwd_fct_list:
+    #             self._exec(l, record_mem, compiled=compiled)
+    #         return self.storage.get_val(self.output.main_target)
+
+    #     return self.storage.get_val(self.output.main_target)
+
     def forward(self, *args, record_mem=False, compiled=True, **kwargs):
         if not self.training:
             self.original_mod.eval()
@@ -173,11 +197,10 @@ class Rockmate(torch.nn.Module):
         for k, v in model_inputs.items():
             self.storage.add_val(k, v)
         exec(self.init_code, self.storage.gd, self.storage.ld)
-        for kg in self.list_kg:
-            for kdn in kg.list_kdn:
-                self.storage.ld[kdn.main_target] = torch.empty(
-                    0, device=self.device, requires_grad=kdn.info.requires_grad
-                )
+        for kdn in self.rkgb_res.K_graph.list_kdn:
+            self.storage.ld[kdn.main_target] = torch.empty(
+                0, device=self.device, requires_grad=kdn.info.requires_grad
+            )
         self.max_mem = []
         self.allo_mem = []
         if compiled:
@@ -186,7 +209,7 @@ class Rockmate(torch.nn.Module):
             return self.storage.get_val(self.output.main_target)
 
         return self.storage.get_val(self.output.main_target)
-
+    
     def backward(
         self, stop=False, record_mem=False, add_output_grad=True, compiled=True
     ):
